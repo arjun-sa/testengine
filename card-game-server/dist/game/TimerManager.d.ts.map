@@ -1,0 +1,1 @@
+{"version":3,"file":"TimerManager.d.ts","sourceRoot":"","sources":["../../src/game/TimerManager.ts"],"names":[],"mappings":"AAEA,qBAAa,YAAY;IACvB,OAAO,CAAC,QAAQ,CAA+C;IAC/D,OAAO,CAAC,YAAY,CAAK;IAEzB,KAAK,CACH,eAAe,EAAE,MAAM,EACvB,MAAM,EAAE,CAAC,SAAS,EAAE,MAAM,KAAK,IAAI,EACnC,SAAS,EAAE,MAAM,IAAI,GACpB,IAAI;IAiBP,IAAI,IAAI,IAAI;IAOZ,YAAY,IAAI,MAAM;CAGvB"}
