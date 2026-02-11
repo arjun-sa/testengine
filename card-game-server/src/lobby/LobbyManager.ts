@@ -150,8 +150,8 @@ export class LobbyManager {
     connection.playerId = null;
     connection.playerName = null;
 
-    // Destroy empty rooms immediately if in lobby
-    if (room.playerCount === 0 && !room.hasGame) {
+    // Destroy empty rooms immediately
+    if (room.playerCount === 0) {
       room.destroy('All players left');
     }
 
@@ -215,6 +215,24 @@ export class LobbyManager {
     gameRoom.broadcastGameStarted();
 
     logger.info({ roomCode: room.code, playerCount: room.playerCount }, 'Game started');
+  }
+
+  handleSkipTimer(connection: Connection): void {
+    const room = this.getConnectionRoom(connection);
+    if (!room) return;
+
+    if (!room.isHost(connection.sessionId)) {
+      this.sendError(connection, 'NOT_HOST', 'Only the host can skip the timer');
+      return;
+    }
+
+    const gameRoom = room.getGameRoom();
+    if (!gameRoom) {
+      this.sendError(connection, 'GAME_NOT_STARTED', 'Game has not started');
+      return;
+    }
+
+    gameRoom.skipTimer();
   }
 
   handleGameAction(connection: Connection, message: ClientMessage): void {

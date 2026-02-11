@@ -1,8 +1,9 @@
-import { Player, GamePhase } from '../engine/types';
+import { GamePhase } from '../engine/types';
+import { ClientSelfPlayer } from '../multiplayer/types';
 import { Card } from './Card';
 
 interface PlayerHandProps {
-  player: Player;
+  player: ClientSelfPlayer;
   phase: GamePhase;
   selectedCards: number[];
   onCardClick: (card: number) => void;

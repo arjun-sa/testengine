@@ -1,7 +1,8 @@
-import { Player, RoundResult } from '../engine/types';
+import { RoundResult } from '../engine/types';
+import { ClientPlayer } from '../multiplayer/types';
 
 interface ScoreBoardProps {
-  players: Player[];
+  players: ClientPlayer[];
   roundHistory: RoundResult[];
   isGameOver: boolean;
 }
@@ -26,7 +27,10 @@ export function ScoreBoard({ players, roundHistory, isGameOver }: ScoreBoardProp
         <tbody>
           {sortedPlayers.map((p) => (
             <tr key={p.id} className={isGameOver && p.id === winner?.id ? 'winner-row' : ''}>
-              <td>{p.name}</td>
+              <td>
+                {!p.connected && <span className="status-dot dot-disconnected" />}
+                {p.name}
+              </td>
               <td>{p.score}</td>
             </tr>
           ))}

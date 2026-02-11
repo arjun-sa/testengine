@@ -27,7 +27,9 @@ export function PhaseDisplay({ phase, currentRound, totalRounds, timer, onSkipTi
       {phase === 'reveal' && (
         <div className="timer-section">
           <span className="timer">{timer}s</span>
-          <button className="skip-btn" onClick={onSkipTimer}>Skip Timer</button>
+          {onSkipTimer && (
+            <button className="skip-btn" onClick={onSkipTimer}>Skip Timer</button>
+          )}
         </div>
       )}
     </div>

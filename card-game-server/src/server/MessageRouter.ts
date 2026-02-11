@@ -85,6 +85,10 @@ export class MessageRouter {
       case 'REQUEST_STATE':
         this.lobbyManager.handleGameAction(connection, message);
         break;
+
+      case 'SKIP_TIMER':
+        this.lobbyManager.handleSkipTimer(connection);
+        break;
     }
   }
 

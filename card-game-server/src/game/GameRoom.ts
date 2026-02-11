@@ -143,6 +143,13 @@ export class GameRoom {
     }
   }
 
+  skipTimer(): void {
+    if (this.state.phase !== 'reveal') return;
+    this.timerManager.stop();
+    this.broadcastToAll({ type: 'TIMER_EXPIRED' });
+    this.transitionToChoose();
+  }
+
   sendStateToPlayer(playerId: number, sessionId: string): void {
     if (!this.callbacks) return;
     const clientState = filterStateForPlayer(this.state, playerId, this.connectedPlayerIds);

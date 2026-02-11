@@ -1,7 +1,40 @@
-import { ClientGameState } from './clientView.js';
-import { RoundResult } from '../engine/types.js';
+import { GamePhase, RoundResult } from '../engine/types';
 
-// ── Client → Server ──
+// ── Client View Types ──
+
+export interface ClientSelfPlayer {
+  id: number;
+  name: string;
+  score: number;
+  hand: number[];
+  selectedPair: [number, number] | null;
+  chosenCard: number | null;
+  benchedCards: number[];
+}
+
+export interface ClientPlayer {
+  id: number;
+  name: string;
+  score: number;
+  hasSelectedPair: boolean;
+  hasChosenCard: boolean;
+  selectedPair: [number, number] | null;
+  chosenCard: number | null;
+  benchedCardCount: number;
+  connected: boolean;
+}
+
+export interface ClientGameState {
+  phase: GamePhase;
+  currentRound: number;
+  totalRounds: number;
+  timer: number;
+  roundHistory: RoundResult[];
+  you: ClientSelfPlayer;
+  players: ClientPlayer[];
+}
+
+// ── Client → Server Messages ──
 
 export interface CreateRoomMessage {
   type: 'CREATE_ROOM';
@@ -61,13 +94,18 @@ export type ClientMessage =
   | SkipTimerMessage
   | PingMessage;
 
-// ── Server → Client ──
+// ── Server → Client Messages ──
 
 export interface LobbyPlayer {
   id: number;
   name: string;
   ready: boolean;
   connected: boolean;
+}
+
+export interface SessionEstablishedMessage {
+  type: 'SESSION_ESTABLISHED';
+  sessionId: string;
 }
 
 export interface RoomCreatedMessage {
@@ -183,6 +221,7 @@ export interface PongMessage {
 }
 
 export type ServerMessage =
+  | SessionEstablishedMessage
   | RoomCreatedMessage
   | RoomJoinedMessage
   | PlayerJoinedMessage

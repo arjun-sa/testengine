@@ -73,7 +73,7 @@ export class Room {
     if (!connected) {
       const connectedCount = this.players.filter((p) => p.connected).length;
       if (connectedCount === 0) {
-        this.scheduleDestroy(Room.EMPTY_TIMEOUT_MS, 'All players disconnected');
+        this.destroy('All players disconnected');
       }
     } else {
       this.cancelDestroyTimer();

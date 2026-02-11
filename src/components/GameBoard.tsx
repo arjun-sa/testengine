@@ -1,63 +1,62 @@
-import { useState } from 'react';
-import { GameState } from '../engine/types';
+import { useState, useEffect, useRef } from 'react';
+import { ClientGameState, GameOverMessage } from '../multiplayer/types';
 import { PlayerHand } from './PlayerHand';
 import { PhaseDisplay } from './PhaseDisplay';
 import { ScoreBoard } from './ScoreBoard';
 import { Card } from './Card';
 
 interface GameBoardProps {
-  state: GameState;
-  showPassScreen: boolean;
-  onSelectPair: (playerId: number, cards: [number, number]) => void;
-  onChooseCard: (playerId: number, card: number) => void;
-  onAdvancePhase: () => void;
-  onDismissPassScreen: () => void;
-  onResetGame: () => void;
+  gameState: ClientGameState;
+  gameOverData: GameOverMessage | null;
+  isHost: boolean;
+  onSelectPair: (cards: [number, number]) => void;
+  onChooseCard: (card: number) => void;
+  onSkipTimer: () => void;
+  onLeaveRoom: () => void;
 }
 
 export function GameBoard({
-  state,
-  showPassScreen,
+  gameState,
+  gameOverData,
+  isHost,
   onSelectPair,
   onChooseCard,
-  onAdvancePhase,
-  onDismissPassScreen,
-  onResetGame,
+  onSkipTimer,
+  onLeaveRoom,
 }: GameBoardProps) {
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
-  const activePlayer = state.players[state.activePlayerIndex];
+  const [preselectedCard, setPreselectedCard] = useState<number | null>(null);
+  const prevPhaseRef = useRef(gameState.phase);
+  const { phase, you, players } = gameState;
 
-  // Pass screen between players in hot-seat mode
-  if (showPassScreen && (state.phase === 'select' || state.phase === 'choose') && state.activePlayerIndex < state.players.length) {
-    return (
-      <div className="pass-screen">
-        <h2>Pass the device to {activePlayer.name}</h2>
-        <button className="ready-btn" onClick={() => {
-          onDismissPassScreen();
-          setSelectedCards([]);
-        }}>
-          I'm {activePlayer.name} - Ready!
-        </button>
-      </div>
-    );
-  }
+  // When phase transitions from reveal → choose, auto-submit preselected card
+  useEffect(() => {
+    if (prevPhaseRef.current === 'reveal' && phase === 'choose' && preselectedCard !== null) {
+      onChooseCard(preselectedCard);
+      setPreselectedCard(null);
+    }
+    prevPhaseRef.current = phase;
+  }, [phase, preselectedCard, onChooseCard]);
 
   const handleCardClick = (card: number) => {
-    if (state.phase === 'select') {
+    if (phase === 'select') {
       setSelectedCards((prev) => {
         if (prev.includes(card)) return prev.filter((c) => c !== card);
         if (prev.length >= 2) return prev;
         return [...prev, card];
       });
-    } else if (state.phase === 'choose') {
-      onChooseCard(activePlayer.id, card);
-      setSelectedCards([]);
+    } else if (phase === 'choose') {
+      onChooseCard(card);
     }
+  };
+
+  const handlePreselect = (card: number) => {
+    setPreselectedCard((prev) => (prev === card ? null : card));
   };
 
   const handleConfirmPair = () => {
     if (selectedCards.length === 2) {
-      onSelectPair(activePlayer.id, selectedCards as [number, number]);
+      onSelectPair(selectedCards as [number, number]);
       setSelectedCards([]);
     }
   };
@@ -65,19 +64,19 @@ export function GameBoard({
   return (
     <div className="game-board">
       <PhaseDisplay
-        phase={state.phase}
-        currentRound={Math.min(state.currentRound, state.totalRounds)}
-        totalRounds={state.totalRounds}
-        timer={state.timer}
-        onSkipTimer={onAdvancePhase}
+        phase={phase}
+        currentRound={Math.min(gameState.currentRound, gameState.totalRounds)}
+        totalRounds={gameState.totalRounds}
+        timer={gameState.timer}
+        onSkipTimer={isHost ? onSkipTimer : undefined}
       />
 
-      {/* Select Phase: show active player's hand */}
-      {state.phase === 'select' && activePlayer && (
+      {/* Select Phase: show your hand, status of others */}
+      {phase === 'select' && (
         <div className="active-phase">
           <PlayerHand
-            player={activePlayer}
-            phase={state.phase}
+            player={you}
+            phase={phase}
             selectedCards={selectedCards}
             onCardClick={handleCardClick}
           />
@@ -88,35 +87,58 @@ export function GameBoard({
           >
             Confirm Selection
           </button>
+          <div className="other-players-status">
+            {players
+              .filter((p) => p.id !== you.id)
+              .map((p) => (
+                <div key={p.id} className="player-status">
+                  <span>{p.name}</span>
+                  <span className={`status-indicator ${p.hasSelectedPair ? 'done' : 'waiting'}`}>
+                    {p.hasSelectedPair ? 'Selected' : 'Waiting...'}
+                  </span>
+                </div>
+              ))}
+          </div>
         </div>
       )}
 
-      {/* Reveal Phase: show all players' selected pairs */}
-      {state.phase === 'reveal' && (
+      {/* Reveal Phase: show all players' selected pairs + preselect your card */}
+      {phase === 'reveal' && (
         <div className="reveal-phase">
           <h3>All Selected Pairs</h3>
           <div className="reveal-grid">
-            {state.players.map((p) => (
-              <div key={p.id} className="reveal-player">
-                <h4>{p.name}</h4>
+            {players.map((p) => (
+              <div key={p.id} className={`reveal-player ${p.id === you.id ? 'reveal-self' : ''}`}>
+                <h4>{p.name}{p.id === you.id ? ' (you)' : ''}</h4>
                 <div className="cards">
-                  {p.selectedPair?.map((card) => (
-                    <Card key={card} value={card} faceUp={true} />
+                  {(p.id === you.id ? you.selectedPair : p.selectedPair)?.map((card) => (
+                    <Card
+                      key={card}
+                      value={card}
+                      faceUp={true}
+                      selected={p.id === you.id && preselectedCard === card}
+                      onClick={p.id === you.id ? () => handlePreselect(card) : undefined}
+                    />
                   ))}
                 </div>
               </div>
             ))}
           </div>
+          {preselectedCard !== null && (
+            <p className="preselect-hint">
+              Card {preselectedCard} preselected — will auto-play when choose phase starts
+            </p>
+          )}
         </div>
       )}
 
-      {/* Choose Phase: active player picks 1 from their pair */}
-      {state.phase === 'choose' && activePlayer && (
+      {/* Choose Phase: pick 1 from your pair */}
+      {phase === 'choose' && (
         <div className="active-phase">
-          <h3>{activePlayer.name}: Choose 1 card to play</h3>
+          <h3>Choose 1 card to play</h3>
           <p>The other card will be benched for 1 round.</p>
           <div className="cards">
-            {activePlayer.selectedPair?.map((card) => (
+            {you.selectedPair?.map((card) => (
               <Card
                 key={card}
                 value={card}
@@ -125,14 +147,26 @@ export function GameBoard({
               />
             ))}
           </div>
+          <div className="other-players-status">
+            {players
+              .filter((p) => p.id !== you.id)
+              .map((p) => (
+                <div key={p.id} className="player-status">
+                  <span>{p.name}</span>
+                  <span className={`status-indicator ${p.hasChosenCard ? 'done' : 'waiting'}`}>
+                    {p.hasChosenCard ? 'Chosen' : 'Choosing...'}
+                  </span>
+                </div>
+              ))}
+          </div>
         </div>
       )}
 
       {/* Resolve Phase: show round results */}
-      {state.phase === 'resolve' && (
+      {phase === 'resolve' && (
         <div className="resolve-phase">
           {(() => {
-            const lastRound = state.roundHistory[state.roundHistory.length - 1];
+            const lastRound = gameState.roundHistory[gameState.roundHistory.length - 1];
             if (!lastRound) return null;
             return (
               <>
@@ -140,19 +174,16 @@ export function GameBoard({
                 <div className="resolve-grid">
                   {lastRound.playedCards.map((pc) => (
                     <div key={pc.playerId} className="resolve-player">
-                      <span>{state.players.find((p) => p.id === pc.playerId)?.name}</span>
+                      <span>{players.find((p) => p.id === pc.playerId)?.name}</span>
                       <Card value={pc.card} faceUp={true} />
                     </div>
                   ))}
                 </div>
                 <div className="round-winner">
                   {lastRound.winnerId !== null
-                    ? `${state.players.find((p) => p.id === lastRound.winnerId)?.name} wins ${lastRound.points} points with card ${lastRound.points}!`
+                    ? `${players.find((p) => p.id === lastRound.winnerId)?.name} wins ${lastRound.points} points!`
                     : 'No winner this round — no unique card played!'}
                 </div>
-                <button className="next-round-btn" onClick={onAdvancePhase}>
-                  Next Round
-                </button>
               </>
             );
           })()}
@@ -160,17 +191,30 @@ export function GameBoard({
       )}
 
       {/* Game Over */}
-      {state.phase === 'gameOver' && (
+      {phase === 'gameOver' && (
         <div className="game-over">
           <h2>Game Over!</h2>
-          <button className="start-btn" onClick={onResetGame}>Play Again</button>
+          {gameOverData && (
+            <div className="final-scores">
+              {gameOverData.finalScores
+                .sort((a, b) => b.score - a.score)
+                .map((entry, i) => (
+                  <div key={entry.playerId} className={`final-score-entry ${i === 0 ? 'winner-row' : ''}`}>
+                    <span className="rank">#{i + 1}</span>
+                    <span className="player-name">{entry.name}</span>
+                    <span className="score">{entry.score} pts</span>
+                  </div>
+                ))}
+            </div>
+          )}
+          <button className="leave-btn" onClick={onLeaveRoom}>Leave Room</button>
         </div>
       )}
 
       <ScoreBoard
-        players={state.players}
-        roundHistory={state.roundHistory}
-        isGameOver={state.phase === 'gameOver'}
+        players={players}
+        roundHistory={gameState.roundHistory}
+        isGameOver={phase === 'gameOver'}
       />
     </div>
   );

@@ -39,6 +39,10 @@ const RequestStateSchema = z.object({
   type: z.literal('REQUEST_STATE'),
 });
 
+const SkipTimerSchema = z.object({
+  type: z.literal('SKIP_TIMER'),
+});
+
 const PingSchema = z.object({
   type: z.literal('PING'),
 });
@@ -52,6 +56,7 @@ const ClientMessageSchema = z.discriminatedUnion('type', [
   SelectPairSchema,
   ChooseCardSchema,
   RequestStateSchema,
+  SkipTimerSchema,
   PingSchema,
 ]);
 
