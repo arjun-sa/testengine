@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { filterStateForPlayer } from '../../src/game/StateFilter.js';
-import { createGame, selectPair, startReveal, startChoose, chooseCard, resolveRound } from '../../src/engine/gameEngine.js';
-import { GameState } from '../../src/engine/types.js';
+import { filterStateForPlayer } from '../../src/games/card-game/StateFilter.js';
+import { createGame, selectPair, startReveal, startChoose, chooseCard, resolveRound } from '../../src/games/card-game/engine/gameEngine.js';
+import { GameState } from '../../src/games/card-game/engine/types.js';
 
 function setupSelectPhase(): GameState {
   let state = createGame(3);

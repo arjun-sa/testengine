@@ -1,0 +1,283 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+#root {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Buttons */
+.start-btn, .confirm-btn, .next-round-btn, .ready-btn, .skip-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.start-btn, .ready-btn {
+  background: #4caf50;
+  color: #fff;
+}
+
+.start-btn:hover, .ready-btn:hover {
+  background: #45a049;
+}
+
+.start-btn:disabled {
+  background: #555;
+  cursor: not-allowed;
+}
+
+.leave-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #555;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.leave-btn:hover {
+  background: #666;
+}
+
+/* Connection Status */
+.connection-status {
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.connection-connected {
+  background: #1b5e20;
+  color: #81c784;
+}
+
+.connection-connecting,
+.connection-reconnecting {
+  background: #e65100;
+  color: #ffb74d;
+}
+
+.connection-disconnected {
+  background: #b71c1c;
+  color: #ef9a9a;
+}
+
+/* Error Toast */
+.error-toast {
+  background: #d32f2f;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+/* Lobby */
+.lobby {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.lobby h1 {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.lobby > p {
+  color: #aaa;
+  margin-bottom: 32px;
+  font-size: 1.1rem;
+}
+
+.lobby-forms {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.lobby-form {
+  background: #16213e;
+  padding: 24px;
+  border-radius: 10px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lobby-form h3 {
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.lobby-form input,
+.lobby-form select {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a4a;
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+}
+
+.lobby-form input:focus,
+.lobby-form select:focus {
+  border-color: #2196f3;
+}
+
+.lobby-divider {
+  color: #666;
+  font-size: 1.1rem;
+  padding-top: 40px;
+}
+
+.game-select {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a4a;
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+}
+
+.game-info {
+  color: #aaa;
+  font-size: 0.95rem;
+}
+
+/* Waiting Room */
+.room-code-section {
+  margin-bottom: 28px;
+}
+
+.room-code-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.room-code {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 6px;
+  font-family: monospace;
+}
+
+.game-type-label {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: #aaa;
+}
+
+.player-list {
+  background: #16213e;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 24px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.player-list h3 {
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.player-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.player-list-item:last-child {
+  border-bottom: none;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-ready {
+  background: #4caf50;
+}
+
+.dot-waiting {
+  background: #666;
+}
+
+.dot-disconnected {
+  background: #d32f2f;
+}
+
+.player-name {
+  flex: 1;
+  text-align: left;
+  color: #e0e0e0;
+}
+
+.ready-badge {
+  font-size: 0.8rem;
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.lobby-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ready-active {
+  background: #ff9800;
+}
+
+.ready-active:hover {
+  background: #f57c00;
+}
+
+/* Game Loading */
+.game-loading {
+  text-align: center;
+  padding: 80px 20px;
+  font-size: 1.2rem;
+  color: #aaa;
+}

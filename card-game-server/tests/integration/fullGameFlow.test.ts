@@ -3,23 +3,27 @@ import { createServer, Server } from 'node:http';
 import express from 'express';
 import { WebSocket } from 'ws';
 import { GameWebSocketServer } from '../../src/server/WebSocketServer.js';
-import { ServerMessage } from '../../src/shared/messages.js';
+import { registerGame } from '../../src/games/registry.js';
+import { cardGameAdapter } from '../../src/games/card-game/adapter.js';
 
 // Override config for tests
 vi.stubEnv('PORT', '0');
 vi.stubEnv('ALLOWED_ORIGINS', '');
 
+// Register the card game adapter for tests
+registerGame(cardGameAdapter);
+
 let server: Server;
 let port: number;
 
-function connectClient(sessionId?: string): Promise<{ ws: WebSocket; messages: ServerMessage[]; waitFor: (type: string, timeout?: number) => Promise<ServerMessage> }> {
+function connectClient(sessionId?: string): Promise<{ ws: WebSocket; messages: object[]; waitFor: (type: string, timeout?: number) => Promise<object> }> {
   return new Promise((resolve, reject) => {
     const url = sessionId
       ? `ws://localhost:${port}/ws?session=${sessionId}`
       : `ws://localhost:${port}/ws`;
 
     const ws = new WebSocket(url);
-    const messages: ServerMessage[] = [];
+    const messages: object[] = [];
 
     ws.on('message', (data) => {
       messages.push(JSON.parse(data.toString()));
@@ -29,17 +33,17 @@ function connectClient(sessionId?: string): Promise<{ ws: WebSocket; messages: S
       resolve({
         ws,
         messages,
-        waitFor: (type: string, timeout = 5000): Promise<ServerMessage> => {
+        waitFor: (type: string, timeout = 5000): Promise<object> => {
           return new Promise((res, rej) => {
             // Check if already received
-            const existing = messages.find((m) => m.type === type);
+            const existing = messages.find((m: any) => m.type === type);
             if (existing) {
               res(existing);
               return;
             }
 
             const timer = setTimeout(() => {
-              rej(new Error(`Timeout waiting for ${type}. Received: ${messages.map(m => m.type).join(', ')}`));
+              rej(new Error(`Timeout waiting for ${type}. Received: ${messages.map((m: any) => m.type).join(', ')}`));
             }, timeout);
 
             const listener = (data: any) => {
@@ -95,7 +99,7 @@ describe('Full Game Flow (Integration)', () => {
 
     send(client.ws, { type: 'PING' });
     const pong = await client.waitFor('PONG');
-    expect(pong.type).toBe('PONG');
+    expect((pong as any).type).toBe('PONG');
 
     client.ws.close();
   });
@@ -106,8 +110,10 @@ describe('Full Game Flow (Integration)', () => {
     client.messages.length = 0;
 
     send(client.ws, { type: 'INVALID_TYPE' });
+
+    // Game action with unknown type goes to handleGameAction which requires a room
     const error = await client.waitFor('ERROR');
-    expect(error.type).toBe('ERROR');
+    expect((error as any).type).toBe('ERROR');
 
     client.ws.close();
   });
@@ -123,12 +129,14 @@ describe('Full Game Flow (Integration)', () => {
     send(host.ws, { type: 'CREATE_ROOM', playerName: 'Alice' });
     const created = await host.waitFor('ROOM_CREATED');
     expect((created as any).roomCode).toHaveLength(4);
+    expect((created as any).gameType).toBe('card-game');
     const roomCode = (created as any).roomCode;
 
     // Joiner joins
     send(joiner.ws, { type: 'JOIN_ROOM', roomCode, playerName: 'Bob' });
     const joined = await joiner.waitFor('ROOM_JOINED');
     expect((joined as any).players.length).toBe(2);
+    expect((joined as any).gameType).toBe('card-game');
 
     // Host should be notified
     const playerJoined = await host.waitFor('PLAYER_JOINED');

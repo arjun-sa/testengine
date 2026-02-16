@@ -1,10 +1,10 @@
-import { GameState } from '../engine/types.js';
+import { GameState } from './engine/types.js';
 import {
   selectPair,
   allPairsSelected,
   chooseCard,
   allCardsChosen,
-} from '../engine/gameEngine.js';
+} from './engine/gameEngine.js';
 
 export interface ActionResult {
   newState: GameState;

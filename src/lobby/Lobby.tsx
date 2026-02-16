@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { LobbyPlayer } from '../multiplayer/types';
-import { ConnectionStatus } from '../hooks/useMultiplayerGame';
+import { ConnectionStatus, LobbyPlayer } from '../shared/types';
+import { getAvailableGames, getGameDefinition } from '../games/registry';
 
 type HomeProps = {
   mode: 'home';
   connectionStatus: ConnectionStatus;
-  onCreateRoom: (playerName: string) => void;
+  onCreateRoom: (playerName: string, gameType: string) => void;
   onJoinRoom: (roomCode: string, playerName: string) => void;
 };
 
@@ -16,6 +16,7 @@ type WaitingProps = {
   playerId: number;
   isHost: boolean;
   players: LobbyPlayer[];
+  gameType: string;
   onSetReady: (ready: boolean) => void;
   onStartGame: () => void;
   onLeaveRoom: () => void;
@@ -34,17 +35,35 @@ function HomeScreen({ connectionStatus, onCreateRoom, onJoinRoom }: HomeProps) {
   const [playerName, setPlayerName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [joinName, setJoinName] = useState('');
+  const [selectedGameType, setSelectedGameType] = useState('card-game');
 
   const disabled = connectionStatus !== 'connected';
+  const availableGames = getAvailableGames();
 
   return (
     <div className="lobby lobby-home">
-      <h1>Lowest Unique Card Game</h1>
-      <p>Pick 2 cards, reveal, choose 1 to play. The lowest unique number scores!</p>
+      <h1>Game Lobby</h1>
+      <p>Choose a game, create or join a room, and play with friends!</p>
 
       <div className="lobby-forms">
         <div className="lobby-form">
           <h3>Create Room</h3>
+          {availableGames.length > 1 && (
+            <select
+              value={selectedGameType}
+              onChange={(e) => setSelectedGameType(e.target.value)}
+              className="game-select"
+            >
+              {availableGames.map((g) => (
+                <option key={g.gameType} value={g.gameType}>
+                  {g.displayName}
+                </option>
+              ))}
+            </select>
+          )}
+          {availableGames.length === 1 && (
+            <div className="game-info">{availableGames[0].displayName}</div>
+          )}
           <input
             type="text"
             placeholder="Your name"
@@ -55,7 +74,7 @@ function HomeScreen({ connectionStatus, onCreateRoom, onJoinRoom }: HomeProps) {
           <button
             className="start-btn"
             disabled={disabled || !playerName.trim()}
-            onClick={() => onCreateRoom(playerName.trim())}
+            onClick={() => onCreateRoom(playerName.trim(), selectedGameType)}
           >
             Create Room
           </button>
@@ -92,15 +111,17 @@ function HomeScreen({ connectionStatus, onCreateRoom, onJoinRoom }: HomeProps) {
   );
 }
 
-function WaitingRoom({ roomCode, playerId, isHost, players, onSetReady, onStartGame, onLeaveRoom }: WaitingProps) {
+function WaitingRoom({ roomCode, playerId, isHost, players, gameType, onSetReady, onStartGame, onLeaveRoom }: WaitingProps) {
   const self = players.find((p) => p.id === playerId);
   const allReady = players.length >= 2 && players.every((p) => p.ready);
+  const gameDef = getGameDefinition(gameType);
 
   return (
     <div className="lobby lobby-waiting">
       <div className="room-code-section">
         <span className="room-code-label">Room Code</span>
         <span className="room-code">{roomCode}</span>
+        {gameDef && <div className="game-type-label">{gameDef.displayName}</div>}
       </div>
 
       <div className="player-list">

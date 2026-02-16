@@ -1,9 +1,11 @@
-import { useMultiplayerGame } from './hooks/useMultiplayerGame';
-import { Lobby } from './components/Lobby';
-import { GameBoard } from './components/GameBoard';
+import { useMultiplayerConnection } from './shared/useMultiplayerConnection';
+import { Lobby } from './lobby/Lobby';
+import { getGameDefinition } from './games/registry';
 
 export default function App() {
-  const mp = useMultiplayerGame();
+  const mp = useMultiplayerConnection();
+
+  const gameDef = mp.gameType ? getGameDefinition(mp.gameType) : undefined;
 
   return (
     <div className="app">
@@ -33,20 +35,20 @@ export default function App() {
           playerId={mp.playerId!}
           isHost={mp.isHost}
           players={mp.lobbyPlayers}
+          gameType={mp.gameType ?? 'card-game'}
           onSetReady={mp.setReady}
           onStartGame={mp.startGame}
           onLeaveRoom={mp.leaveRoom}
         />
       )}
 
-      {mp.screen === 'game' && mp.gameState && (
-        <GameBoard
-          gameState={mp.gameState}
-          gameOverData={mp.gameOverData}
+      {mp.screen === 'game' && gameDef && mp.playerId !== null && (
+        <gameDef.GameComponent
+          send={mp.send}
+          onGameMessage={mp.setOnGameMessage}
+          setScreenToGame={mp.setScreenToGame}
           isHost={mp.isHost}
-          onSelectPair={mp.selectPair}
-          onChooseCard={mp.chooseCard}
-          onSkipTimer={mp.skipTimer}
+          playerId={mp.playerId}
           onLeaveRoom={mp.leaveRoom}
         />
       )}

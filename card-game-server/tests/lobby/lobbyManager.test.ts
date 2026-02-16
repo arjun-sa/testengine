@@ -2,8 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { WebSocket } from 'ws';
 import { LobbyManager } from '../../src/lobby/LobbyManager.js';
 import { ConnectionManager, Connection } from '../../src/server/ConnectionManager.js';
-import { ServerMessage } from '../../src/shared/messages.js';
 import { RateLimiter } from '../../src/utils/rateLimiter.js';
+import { registerGame } from '../../src/games/registry.js';
+import { cardGameAdapter } from '../../src/games/card-game/adapter.js';
+
+// Register the card game adapter for tests
+registerGame(cardGameAdapter);
 
 function createMockWs(): WebSocket {
   const sent: string[] = [];
@@ -15,9 +19,9 @@ function createMockWs(): WebSocket {
   } as any;
 }
 
-function createMockConnection(sessionId: string): { connection: Connection; messages: ServerMessage[] } {
+function createMockConnection(sessionId: string): { connection: Connection; messages: object[] } {
   const ws = createMockWs();
-  const messages: ServerMessage[] = [];
+  const messages: object[] = [];
   const originalSend = ws.send.bind(ws);
   ws.send = ((data: string) => {
     originalSend(data);
@@ -48,7 +52,7 @@ describe('LobbyManager', () => {
     lobbyManager = new LobbyManager(connectionManager, 100);
 
     // Override send to use mock WS directly
-    connectionManager.send = (sessionId: string, message: ServerMessage) => {
+    connectionManager.send = (sessionId: string, message: object) => {
       const conn = connectionManager.getConnection(sessionId);
       if (conn && conn.ws.readyState === WebSocket.OPEN) {
         conn.ws.send(JSON.stringify(message));
@@ -56,7 +60,7 @@ describe('LobbyManager', () => {
     };
   });
 
-  function addTestConnection(sessionId: string): { connection: Connection; messages: ServerMessage[] } {
+  function addTestConnection(sessionId: string): { connection: Connection; messages: object[] } {
     const { connection, messages } = createMockConnection(sessionId);
     // Register in connection manager
     (connectionManager as any).connections = (connectionManager as any).connections || new Map();
@@ -70,8 +74,9 @@ describe('LobbyManager', () => {
     lobbyManager.createRoom(connection, 'Alice');
 
     expect(messages.length).toBe(1);
-    expect(messages[0].type).toBe('ROOM_CREATED');
+    expect((messages[0] as any).type).toBe('ROOM_CREATED');
     expect((messages[0] as any).roomCode).toHaveLength(4);
+    expect((messages[0] as any).gameType).toBe('card-game');
     expect(connection.roomCode).toBe((messages[0] as any).roomCode);
     expect(connection.playerId).toBe(0);
   });
@@ -83,7 +88,7 @@ describe('LobbyManager', () => {
 
     lobbyManager.createRoom(connection, 'Alice');
 
-    expect(messages[0].type).toBe('ERROR');
+    expect((messages[0] as any).type).toBe('ERROR');
     expect((messages[0] as any).message).toContain('Already in a room');
   });
 
@@ -96,8 +101,9 @@ describe('LobbyManager', () => {
 
     lobbyManager.joinRoom(joiner.connection, roomCode, 'Bob');
 
-    expect(joiner.messages[0].type).toBe('ROOM_JOINED');
+    expect((joiner.messages[0] as any).type).toBe('ROOM_JOINED');
     expect((joiner.messages[0] as any).players.length).toBe(2);
+    expect((joiner.messages[0] as any).gameType).toBe('card-game');
     expect(joiner.connection.roomCode).toBe(roomCode);
   });
 
@@ -110,7 +116,7 @@ describe('LobbyManager', () => {
 
     lobbyManager.joinRoom(joiner.connection, roomCode, 'Alice');
 
-    expect(joiner.messages[0].type).toBe('ERROR');
+    expect((joiner.messages[0] as any).type).toBe('ERROR');
     expect((joiner.messages[0] as any).code).toBe('NAME_TAKEN');
   });
 
@@ -118,7 +124,7 @@ describe('LobbyManager', () => {
     const { connection, messages } = addTestConnection('session-1');
     lobbyManager.joinRoom(connection, 'ZZZZ', 'Alice');
 
-    expect(messages[0].type).toBe('ERROR');
+    expect((messages[0] as any).type).toBe('ERROR');
     expect((messages[0] as any).code).toBe('ROOM_NOT_FOUND');
   });
 
@@ -136,7 +142,7 @@ describe('LobbyManager', () => {
     lobbyManager.setReady(joiner.connection, true);
 
     // Both should receive PLAYER_READY
-    const hostReady = host.messages.find((m) => m.type === 'PLAYER_READY');
+    const hostReady = host.messages.find((m: any) => m.type === 'PLAYER_READY');
     expect(hostReady).toBeDefined();
     expect((hostReady as any).ready).toBe(true);
   });
@@ -152,7 +158,7 @@ describe('LobbyManager', () => {
     joiner.messages.length = 0;
     lobbyManager.startGame(joiner.connection);
 
-    expect(joiner.messages[0].type).toBe('ERROR');
+    expect((joiner.messages[0] as any).type).toBe('ERROR');
     expect((joiner.messages[0] as any).code).toBe('NOT_HOST');
   });
 
@@ -170,7 +176,7 @@ describe('LobbyManager', () => {
     host.messages.length = 0;
     lobbyManager.startGame(host.connection);
 
-    expect(host.messages[0].type).toBe('ERROR');
+    expect((host.messages[0] as any).type).toBe('ERROR');
     expect((host.messages[0] as any).code).toBe('PLAYERS_NOT_READY');
   });
 
@@ -190,8 +196,8 @@ describe('LobbyManager', () => {
 
     lobbyManager.startGame(host.connection);
 
-    const hostStarted = host.messages.find((m) => m.type === 'GAME_STARTED');
-    const joinerStarted = joiner.messages.find((m) => m.type === 'GAME_STARTED');
+    const hostStarted = host.messages.find((m: any) => m.type === 'GAME_STARTED');
+    const joinerStarted = joiner.messages.find((m: any) => m.type === 'GAME_STARTED');
     expect(hostStarted).toBeDefined();
     expect(joinerStarted).toBeDefined();
   });
@@ -207,7 +213,7 @@ describe('LobbyManager', () => {
     host.messages.length = 0;
     lobbyManager.leaveRoom(joiner.connection);
 
-    const playerLeft = host.messages.find((m) => m.type === 'PLAYER_LEFT');
+    const playerLeft = host.messages.find((m: any) => m.type === 'PLAYER_LEFT');
     expect(playerLeft).toBeDefined();
     expect(joiner.connection.roomCode).toBeNull();
   });

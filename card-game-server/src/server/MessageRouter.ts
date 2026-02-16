@@ -1,4 +1,4 @@
-import { ClientMessage, ErrorCode } from '../shared/messages.js';
+import { ErrorCode } from '../shared/messages.js';
 import { Connection, ConnectionManager } from './ConnectionManager.js';
 import { validateMessage } from './MessageValidator.js';
 import { LobbyManager } from '../lobby/LobbyManager.js';
@@ -45,21 +45,30 @@ export class MessageRouter {
       return;
     }
 
-    this.routeMessage(connection, result.message);
+    if (result.isLobby) {
+      this.routeLobbyMessage(connection, result.message);
+    } else {
+      // Game action — delegate to lobby manager
+      this.lobbyManager.handleGameAction(connection, result.message);
+    }
   }
 
-  private routeMessage(connection: Connection, message: ClientMessage): void {
+  private routeLobbyMessage(connection: Connection, message: { type: string; [key: string]: unknown }): void {
     switch (message.type) {
       case 'PING':
         this.connectionManager.send(connection.sessionId, { type: 'PONG' });
         break;
 
       case 'CREATE_ROOM':
-        this.lobbyManager.createRoom(connection, message.playerName);
+        this.lobbyManager.createRoom(
+          connection,
+          message.playerName as string,
+          (message.gameType as string | undefined) ?? 'card-game'
+        );
         break;
 
       case 'JOIN_ROOM':
-        this.lobbyManager.joinRoom(connection, message.roomCode, message.playerName);
+        this.lobbyManager.joinRoom(connection, message.roomCode as string, message.playerName as string);
         break;
 
       case 'LEAVE_ROOM':
@@ -67,27 +76,11 @@ export class MessageRouter {
         break;
 
       case 'SET_READY':
-        this.lobbyManager.setReady(connection, message.ready);
+        this.lobbyManager.setReady(connection, message.ready as boolean);
         break;
 
       case 'START_GAME':
         this.lobbyManager.startGame(connection);
-        break;
-
-      case 'SELECT_PAIR':
-        this.lobbyManager.handleGameAction(connection, message);
-        break;
-
-      case 'CHOOSE_CARD':
-        this.lobbyManager.handleGameAction(connection, message);
-        break;
-
-      case 'REQUEST_STATE':
-        this.lobbyManager.handleGameAction(connection, message);
-        break;
-
-      case 'SKIP_TIMER':
-        this.lobbyManager.handleSkipTimer(connection);
         break;
     }
   }

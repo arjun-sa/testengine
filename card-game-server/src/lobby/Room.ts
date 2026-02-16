@@ -1,4 +1,4 @@
-import { GameRoom } from '../game/GameRoom.js';
+import { GameRoomInstance } from '../games/types.js';
 import { LobbyPlayer } from '../shared/messages.js';
 
 export interface RoomPlayer {
@@ -13,9 +13,10 @@ export class Room {
   readonly code: string;
   readonly hostSessionId: string;
   readonly createdAt: number;
+  readonly gameType: string;
   private players: RoomPlayer[] = [];
   private nextPlayerId = 0;
-  private gameRoom: GameRoom | null = null;
+  private gameRoom: GameRoomInstance | null = null;
   private destroyTimer: ReturnType<typeof setTimeout> | null = null;
   private hardCapTimer: ReturnType<typeof setTimeout>;
 
@@ -24,10 +25,11 @@ export class Room {
   private static POST_GAME_TIMEOUT_MS = 30 * 60 * 1000;
   private static HARD_CAP_MS = 2 * 60 * 60 * 1000;
 
-  constructor(code: string, hostSessionId: string, private onDestroy: (code: string) => void) {
+  constructor(code: string, hostSessionId: string, private onDestroy: (code: string) => void, gameType: string = 'card-game') {
     this.code = code;
     this.hostSessionId = hostSessionId;
     this.createdAt = Date.now();
+    this.gameType = gameType;
 
     this.hardCapTimer = setTimeout(() => {
       this.destroy('Room expired (2 hour limit)');
@@ -90,8 +92,9 @@ export class Room {
     return player;
   }
 
-  canStart(): { ok: boolean; reason?: string } {
-    if (this.players.length < 2) return { ok: false, reason: 'Need at least 2 players' };
+  canStart(minPlayers: number = 2, maxPlayers: number = 4): { ok: boolean; reason?: string } {
+    if (this.players.length < minPlayers) return { ok: false, reason: `Need at least ${minPlayers} players` };
+    if (this.players.length > maxPlayers) return { ok: false, reason: `Too many players (max ${maxPlayers})` };
     if (!this.players.every((p) => p.ready)) return { ok: false, reason: 'Not all players are ready' };
     return { ok: true };
   }
@@ -100,13 +103,11 @@ export class Room {
     return this.hostSessionId === sessionId;
   }
 
-  startGame(): GameRoom {
-    const playerNames = this.players.map((p) => ({ id: p.id, name: p.name }));
-    this.gameRoom = new GameRoom(playerNames);
-    return this.gameRoom;
+  startGame(gameRoom: GameRoomInstance): void {
+    this.gameRoom = gameRoom;
   }
 
-  getGameRoom(): GameRoom | null {
+  getGameRoom(): GameRoomInstance | null {
     return this.gameRoom;
   }
 
@@ -120,6 +121,10 @@ export class Room {
 
   getPlayers(): readonly RoomPlayer[] {
     return this.players;
+  }
+
+  getPlayerInfos(): { id: number; name: string }[] {
+    return this.players.map((p) => ({ id: p.id, name: p.name }));
   }
 
   getLobbyPlayers(): LobbyPlayer[] {

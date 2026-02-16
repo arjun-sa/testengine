@@ -1,11 +1,9 @@
-import { ClientGameState } from './clientView.js';
-import { RoundResult } from '../engine/types.js';
-
-// ── Client → Server ──
+// ── Client → Server (Lobby messages only) ──
 
 export interface CreateRoomMessage {
   type: 'CREATE_ROOM';
   playerName: string;
+  gameType?: string;
 }
 
 export interface JoinRoomMessage {
@@ -27,39 +25,25 @@ export interface StartGameMessage {
   type: 'START_GAME';
 }
 
-export interface SelectPairMessage {
-  type: 'SELECT_PAIR';
-  cards: [number, number];
-}
-
-export interface ChooseCardMessage {
-  type: 'CHOOSE_CARD';
-  card: number;
-}
-
-export interface RequestStateMessage {
-  type: 'REQUEST_STATE';
-}
-
-export interface SkipTimerMessage {
-  type: 'SKIP_TIMER';
-}
-
 export interface PingMessage {
   type: 'PING';
 }
 
-export type ClientMessage =
+export type LobbyClientMessage =
   | CreateRoomMessage
   | JoinRoomMessage
   | LeaveRoomMessage
   | SetReadyMessage
   | StartGameMessage
-  | SelectPairMessage
-  | ChooseCardMessage
-  | RequestStateMessage
-  | SkipTimerMessage
   | PingMessage;
+
+// Game actions are validated by their adapter, not here
+export interface GameActionMessage {
+  type: string;
+  [key: string]: unknown;
+}
+
+export type ClientMessage = LobbyClientMessage | GameActionMessage;
 
 // ── Server → Client ──
 
@@ -74,6 +58,7 @@ export interface RoomCreatedMessage {
   type: 'ROOM_CREATED';
   roomCode: string;
   playerId: number;
+  gameType: string;
 }
 
 export interface RoomJoinedMessage {
@@ -81,6 +66,7 @@ export interface RoomJoinedMessage {
   roomCode: string;
   playerId: number;
   players: LobbyPlayer[];
+  gameType: string;
 }
 
 export interface PlayerJoinedMessage {
@@ -102,61 +88,6 @@ export interface PlayerReadyMessage {
 export interface RoomClosedMessage {
   type: 'ROOM_CLOSED';
   reason: string;
-}
-
-export interface GameStartedMessage {
-  type: 'GAME_STARTED';
-  state: ClientGameState;
-}
-
-export interface StateUpdateMessage {
-  type: 'STATE_UPDATE';
-  state: ClientGameState;
-}
-
-export interface PhaseChangedMessage {
-  type: 'PHASE_CHANGED';
-  phase: string;
-  state: ClientGameState;
-}
-
-export interface PairSelectedMessage {
-  type: 'PAIR_SELECTED';
-  playerId: number;
-}
-
-export interface AllPairsSelectedMessage {
-  type: 'ALL_PAIRS_SELECTED';
-}
-
-export interface TimerTickMessage {
-  type: 'TIMER_TICK';
-  timer: number;
-}
-
-export interface TimerExpiredMessage {
-  type: 'TIMER_EXPIRED';
-}
-
-export interface CardChosenMessage {
-  type: 'CARD_CHOSEN';
-  playerId: number;
-}
-
-export interface AllCardsChosenMessage {
-  type: 'ALL_CARDS_CHOSEN';
-}
-
-export interface RoundResultMessage {
-  type: 'ROUND_RESULT';
-  result: RoundResult;
-  state: ClientGameState;
-}
-
-export interface GameOverMessage {
-  type: 'GAME_OVER';
-  state: ClientGameState;
-  finalScores: { playerId: number; name: string; score: number }[];
 }
 
 export type ErrorCode =
@@ -189,16 +120,5 @@ export type ServerMessage =
   | PlayerLeftMessage
   | PlayerReadyMessage
   | RoomClosedMessage
-  | GameStartedMessage
-  | StateUpdateMessage
-  | PhaseChangedMessage
-  | PairSelectedMessage
-  | AllPairsSelectedMessage
-  | TimerTickMessage
-  | TimerExpiredMessage
-  | CardChosenMessage
-  | AllCardsChosenMessage
-  | RoundResultMessage
-  | GameOverMessage
   | ErrorMessage
   | PongMessage;

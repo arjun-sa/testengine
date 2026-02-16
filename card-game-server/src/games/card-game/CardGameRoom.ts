@@ -1,12 +1,12 @@
-import { GameState } from '../engine/types.js';
+import { GameState } from './engine/types.js';
 import {
   createGame,
   startReveal,
   startChoose,
   resolveRound,
   startNextRound,
-} from '../engine/gameEngine.js';
-import { ServerMessage } from '../shared/messages.js';
+} from './engine/gameEngine.js';
+import { GameRoomInstance, GameRoomCallbacks } from '../types.js';
 import { filterStateForPlayer } from './StateFilter.js';
 import { TimerManager } from './TimerManager.js';
 import {
@@ -15,16 +15,7 @@ import {
   autoSelectPair,
   autoChooseCard,
 } from './ActionHandler.js';
-import { logger } from '../utils/logger.js';
-
-interface GameRoomCallbacks {
-  broadcast: (sessionIds: string[], message: ServerMessage) => void;
-  sendToPlayer: (sessionId: string, message: ServerMessage) => void;
-  getConnectedSessionIds: () => string[];
-  getPlayerSessionId: (playerId: number) => string | null;
-  getAllSessionIds: () => string[];
-  onGameOver: () => void;
-}
+import { logger } from '../../utils/logger.js';
 
 interface PlayerInfo {
   id: number;
@@ -34,7 +25,7 @@ interface PlayerInfo {
 const DISCONNECT_AUTO_PLAY_MS = 30_000;
 const RESOLVE_DELAY_MS = 3_000;
 
-export class GameRoom {
+export class CardGameRoom implements GameRoomInstance {
   private state: GameState;
   private callbacks: GameRoomCallbacks | null = null;
   private timerManager = new TimerManager();
@@ -79,7 +70,24 @@ export class GameRoom {
     }
   }
 
-  handleSelectPair(playerId: number, sessionId: string, cards: [number, number]): void {
+  handleAction(playerId: number, sessionId: string, message: { type: string; [key: string]: unknown }): void {
+    switch (message.type) {
+      case 'SELECT_PAIR':
+        this.handleSelectPair(playerId, sessionId, message.cards as [number, number]);
+        break;
+      case 'CHOOSE_CARD':
+        this.handleChooseCard(playerId, sessionId, message.card as number);
+        break;
+      case 'REQUEST_STATE':
+        this.sendStateToPlayer(playerId, sessionId);
+        break;
+      case 'SKIP_TIMER':
+        this.skipTimer();
+        break;
+    }
+  }
+
+  private handleSelectPair(playerId: number, sessionId: string, cards: [number, number]): void {
     if (this.state.phase !== 'select') {
       this.sendError(sessionId, 'INVALID_ACTION', 'Not in select phase');
       return;
@@ -111,7 +119,7 @@ export class GameRoom {
     }
   }
 
-  handleChooseCard(playerId: number, sessionId: string, card: number): void {
+  private handleChooseCard(playerId: number, sessionId: string, card: number): void {
     if (this.state.phase !== 'choose') {
       this.sendError(sessionId, 'INVALID_ACTION', 'Not in choose phase');
       return;
@@ -143,7 +151,7 @@ export class GameRoom {
     }
   }
 
-  skipTimer(): void {
+  private skipTimer(): void {
     if (this.state.phase !== 'reveal') return;
     this.timerManager.stop();
     this.broadcastToAll({ type: 'TIMER_EXPIRED' });
@@ -337,7 +345,7 @@ export class GameRoom {
     }
   }
 
-  private broadcastToAll(message: ServerMessage): void {
+  private broadcastToAll(message: object): void {
     if (!this.callbacks) return;
     const sessionIds = this.callbacks.getConnectedSessionIds();
     this.callbacks.broadcast(sessionIds, message);
@@ -347,7 +355,7 @@ export class GameRoom {
     if (!this.callbacks) return;
     this.callbacks.sendToPlayer(sessionId, {
       type: 'ERROR',
-      code: code as any,
+      code,
       message,
     });
   }

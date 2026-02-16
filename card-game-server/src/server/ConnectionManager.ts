@@ -1,6 +1,5 @@
 import { WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import { ServerMessage } from '../shared/messages.js';
 import { RateLimiter } from '../utils/rateLimiter.js';
 import { logger } from '../utils/logger.js';
 
@@ -94,7 +93,7 @@ export class ConnectionManager {
     return undefined;
   }
 
-  send(sessionId: string, message: ServerMessage): void {
+  send(sessionId: string, message: object): void {
     const conn = this.connections.get(sessionId);
     if (conn && conn.ws.readyState === WebSocket.OPEN) {
       conn.ws.send(JSON.stringify(message));

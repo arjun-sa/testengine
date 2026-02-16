@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GameRoom } from '../../src/game/GameRoom.js';
-import { ServerMessage } from '../../src/shared/messages.js';
+import { CardGameRoom } from '../../src/games/card-game/CardGameRoom.js';
 
 function createTestGameRoom(playerCount = 2) {
   const players = Array.from({ length: playerCount }, (_, i) => ({
@@ -8,9 +7,9 @@ function createTestGameRoom(playerCount = 2) {
     name: `Player ${i + 1}`,
   }));
 
-  const room = new GameRoom(players);
-  const sent: { sessionId: string; message: ServerMessage }[] = [];
-  const broadcasted: { sessionIds: string[]; message: ServerMessage }[] = [];
+  const room = new CardGameRoom(players);
+  const sent: { sessionId: string; message: object }[] = [];
+  const broadcasted: { sessionIds: string[]; message: object }[] = [];
   let gameOverCalled = false;
 
   const sessionMap = new Map<number, string>();
@@ -34,7 +33,7 @@ function createTestGameRoom(playerCount = 2) {
   return { room, sent, broadcasted, sessionMap, isGameOver: () => gameOverCalled };
 }
 
-describe('GameRoom', () => {
+describe('CardGameRoom', () => {
   it('should create game with correct player names', () => {
     const { room } = createTestGameRoom(2);
     const state = room.getState();
@@ -50,8 +49,8 @@ describe('GameRoom', () => {
     room.broadcastGameStarted();
 
     expect(sent.length).toBe(2);
-    expect(sent[0].message.type).toBe('GAME_STARTED');
-    expect(sent[1].message.type).toBe('GAME_STARTED');
+    expect((sent[0].message as any).type).toBe('GAME_STARTED');
+    expect((sent[1].message as any).type).toBe('GAME_STARTED');
 
     // Each player gets their own filtered state
     const state0 = (sent[0].message as any).state;
@@ -60,24 +59,24 @@ describe('GameRoom', () => {
     expect(state1.you.id).toBe(1);
   });
 
-  it('should handle select pair', () => {
+  it('should handle select pair via handleAction', () => {
     const { room, sent, broadcasted } = createTestGameRoom(2);
     room.broadcastGameStarted();
     sent.length = 0;
     broadcasted.length = 0;
 
-    room.handleSelectPair(0, 'session-0', [3, 5]);
+    room.handleAction(0, 'session-0', { type: 'SELECT_PAIR', cards: [3, 5] });
 
     // Should broadcast PAIR_SELECTED
     const pairSelected = broadcasted.find(
-      (b) => b.message.type === 'PAIR_SELECTED'
+      (b) => (b.message as any).type === 'PAIR_SELECTED'
     );
     expect(pairSelected).toBeDefined();
     expect((pairSelected!.message as any).playerId).toBe(0);
 
     // Should send state update to acting player
     const stateUpdate = sent.find(
-      (s) => s.sessionId === 'session-0' && s.message.type === 'STATE_UPDATE'
+      (s) => s.sessionId === 'session-0' && (s.message as any).type === 'STATE_UPDATE'
     );
     expect(stateUpdate).toBeDefined();
   });
@@ -87,9 +86,9 @@ describe('GameRoom', () => {
     sent.length = 0;
 
     // Try to select same card twice
-    room.handleSelectPair(0, 'session-0', [3, 3]);
+    room.handleAction(0, 'session-0', { type: 'SELECT_PAIR', cards: [3, 3] });
 
-    const error = sent.find((s) => s.message.type === 'ERROR');
+    const error = sent.find((s) => (s.message as any).type === 'ERROR');
     expect(error).toBeDefined();
     expect((error!.message as any).code).toBe('INVALID_ACTION');
   });
@@ -101,9 +100,9 @@ describe('GameRoom', () => {
     // Manually force a different phase to test guard
     (room as any).state = { ...(room as any).state, phase: 'reveal' };
 
-    room.handleSelectPair(0, 'session-0', [3, 5]);
+    room.handleAction(0, 'session-0', { type: 'SELECT_PAIR', cards: [3, 5] });
 
-    const error = sent.find((s) => s.message.type === 'ERROR');
+    const error = sent.find((s) => (s.message as any).type === 'ERROR');
     expect(error).toBeDefined();
   });
 
@@ -111,12 +110,12 @@ describe('GameRoom', () => {
     const { room, sent } = createTestGameRoom(2);
     sent.length = 0;
 
-    room.handleSelectPair(0, 'session-0', [3, 5]);
+    room.handleAction(0, 'session-0', { type: 'SELECT_PAIR', cards: [3, 5] });
     sent.length = 0;
 
-    room.handleSelectPair(0, 'session-0', [2, 4]);
+    room.handleAction(0, 'session-0', { type: 'SELECT_PAIR', cards: [2, 4] });
 
-    const error = sent.find((s) => s.message.type === 'ERROR');
+    const error = sent.find((s) => (s.message as any).type === 'ERROR');
     expect(error).toBeDefined();
     expect((error!.message as any).message).toContain('Already selected');
   });
@@ -129,43 +128,43 @@ describe('GameRoom', () => {
     broadcasted.length = 0;
 
     // Select phase
-    room.handleSelectPair(0, 'session-0', [3, 5]);
-    room.handleSelectPair(1, 'session-1', [2, 7]);
+    room.handleAction(0, 'session-0', { type: 'SELECT_PAIR', cards: [3, 5] });
+    room.handleAction(1, 'session-1', { type: 'SELECT_PAIR', cards: [2, 7] });
 
     // Should have transitioned to reveal (ALL_PAIRS_SELECTED + PHASE_CHANGED)
-    const allPairs = broadcasted.find((b) => b.message.type === 'ALL_PAIRS_SELECTED');
+    const allPairs = broadcasted.find((b) => (b.message as any).type === 'ALL_PAIRS_SELECTED');
     expect(allPairs).toBeDefined();
 
-    const phaseChanged = sent.find((s) => s.message.type === 'PHASE_CHANGED');
+    const phaseChanged = sent.find((s) => (s.message as any).type === 'PHASE_CHANGED');
     expect(phaseChanged).toBeDefined();
 
     // Fast-forward through timer
     vi.advanceTimersByTime(60_000);
 
     // Should have transitioned to choose
-    const timerExpired = broadcasted.find((b) => b.message.type === 'TIMER_EXPIRED');
+    const timerExpired = broadcasted.find((b) => (b.message as any).type === 'TIMER_EXPIRED');
     expect(timerExpired).toBeDefined();
 
     sent.length = 0;
     broadcasted.length = 0;
 
     // Choose phase
-    room.handleChooseCard(0, 'session-0', 3);
-    room.handleChooseCard(1, 'session-1', 2);
+    room.handleAction(0, 'session-0', { type: 'CHOOSE_CARD', card: 3 });
+    room.handleAction(1, 'session-1', { type: 'CHOOSE_CARD', card: 2 });
 
     // Should have ALL_CARDS_CHOSEN
-    const allChosen = broadcasted.find((b) => b.message.type === 'ALL_CARDS_CHOSEN');
+    const allChosen = broadcasted.find((b) => (b.message as any).type === 'ALL_CARDS_CHOSEN');
     expect(allChosen).toBeDefined();
 
     // Should have ROUND_RESULT
-    const roundResult = sent.find((s) => s.message.type === 'ROUND_RESULT');
+    const roundResult = sent.find((s) => (s.message as any).type === 'ROUND_RESULT');
     expect(roundResult).toBeDefined();
 
     // After resolve delay, should transition to next round
     vi.advanceTimersByTime(3_000);
 
     const nextPhase = sent.find(
-      (s) => s.message.type === 'PHASE_CHANGED' && (s.message as any).phase === 'select'
+      (s) => (s.message as any).type === 'PHASE_CHANGED' && (s.message as any).phase === 'select'
     );
     expect(nextPhase).toBeDefined();
 

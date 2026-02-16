@@ -1,0 +1,453 @@
+/* Insurance Bidding Game Styles */
+
+/* Phase Display */
+.ins-phase-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #16213e;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ins-deck-info {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.deck-red {
+  color: #ef5350;
+  font-weight: 600;
+}
+
+.deck-black {
+  color: #e0e0e0;
+  font-weight: 600;
+}
+
+/* Person Cards */
+.person-grid {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.ins-person-card {
+  background: #16213e;
+  border: 2px solid #2a2a4a;
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-width: 130px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.ins-person-card.person-healthy {
+  border-color: #388e3c;
+}
+
+.ins-person-card.person-sick {
+  border-color: #d32f2f;
+}
+
+.person-header {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+/* Drawn Card Display */
+.person-draw {
+  margin-top: 8px;
+}
+
+.drawn-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #2a2a4a;
+}
+
+.drawn-card.card-red {
+  color: #ef5350;
+}
+
+.drawn-card.card-black {
+  color: #e0e0e0;
+}
+
+.draw-status {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin: 4px 0;
+}
+
+.contract-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.contract-winner {
+  color: #fff;
+  font-weight: 600;
+}
+
+.contract-price {
+  color: #ff9800;
+}
+
+.no-contract {
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Bid Form */
+.ins-bid-form {
+  background: #16213e;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ins-bid-form h3 {
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.ins-bid-form.bid-submitted {
+  border: 2px solid #388e3c;
+}
+
+.ins-bid-form.bid-submitted p {
+  color: #81c784;
+  font-weight: 600;
+}
+
+.bid-inputs {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.bid-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.bid-input-group label {
+  font-size: 0.9rem;
+  color: #ccc;
+  font-weight: 600;
+}
+
+.bid-input-group input {
+  width: 100px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a4a;
+  color: #fff;
+  font-size: 1.1rem;
+  text-align: center;
+  outline: none;
+}
+
+.bid-input-group input:focus {
+  border-color: #2196f3;
+}
+
+.cost-hint {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* Bid Reveal Table */
+.ins-bid-reveal {
+  background: #16213e;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.ins-bid-reveal h3 {
+  color: #fff;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.bid-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bid-table th,
+.bid-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.bid-table th {
+  color: #888;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.bid-table td {
+  color: #e0e0e0;
+}
+
+/* Draw Animation */
+.ins-draw-animation {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ins-draw-animation h3 {
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+/* Results Phase */
+.ins-results-phase {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.round-profit-summary {
+  background: #16213e;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.round-profit-summary h3 {
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.profit-chips {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.profit-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #2a2a4a;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+/* Profit Colors */
+.profit-pos {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.profit-neg {
+  color: #ef5350;
+  font-weight: 600;
+}
+
+/* Scoreboard */
+.ins-scoreboard {
+  background: #16213e;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.ins-scoreboard h3 {
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.ins-scoreboard table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ins-scoreboard th,
+.ins-scoreboard td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.ins-scoreboard th {
+  color: #888;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+/* Round History */
+.ins-round-history {
+  margin-top: 20px;
+}
+
+.ins-round-history h4 {
+  margin-bottom: 10px;
+  color: #ccc;
+}
+
+.ins-round-entry {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.9rem;
+  color: #aaa;
+  border-bottom: 1px solid #222;
+  flex-wrap: wrap;
+}
+
+.round-num {
+  font-weight: 700;
+  color: #888;
+  min-width: 28px;
+}
+
+.round-profit-entry {
+  font-size: 0.85rem;
+}
+
+/* Bidding Phase Layout */
+.ins-bidding-phase {
+  margin-bottom: 16px;
+}
+
+/* Reveal Phase Layout */
+.ins-reveal-phase {
+  margin-bottom: 16px;
+}
+
+/* Header Actions */
+.ins-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Pause */
+.ins-paused-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.ins-paused-banner {
+  background: #16213e;
+  border: 2px solid #ff9800;
+  border-radius: 12px;
+  padding: 32px 48px;
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ff9800;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.pause-active {
+  background: #ff9800 !important;
+  color: #000 !important;
+}
+
+/* Rules Screen */
+.ins-rules-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 24px;
+}
+
+.ins-rules-card {
+  background: #16213e;
+  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  padding: 32px 36px;
+  max-width: 600px;
+  width: 100%;
+}
+
+.ins-rules-card h2 {
+  color: #fff;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.ins-rules-body section {
+  margin-bottom: 16px;
+}
+
+.ins-rules-body h3 {
+  color: #2196f3;
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+
+.ins-rules-body p,
+.ins-rules-body li {
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.ins-rules-body ol {
+  padding-left: 20px;
+}
+
+.ins-rules-body ol li {
+  margin-bottom: 8px;
+}
+
+.ins-rules-body strong {
+  color: #fff;
+}
+
+.ins-rules-body em {
+  color: #ff9800;
+  font-style: normal;
+}
+
+.ins-rules-start-btn {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  padding: 12px;
+  font-size: 1.1rem;
+}

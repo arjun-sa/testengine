@@ -3,6 +3,13 @@ import express from 'express';
 import { GameWebSocketServer } from './server/WebSocketServer.js';
 import { config } from './config.js';
 import { logger } from './utils/logger.js';
+import { registerGame } from './games/registry.js';
+import { cardGameAdapter } from './games/card-game/adapter.js';
+import { insuranceGameAdapter } from './games/insurance/adapter.js';
+
+// Register available games
+registerGame(cardGameAdapter);
+registerGame(insuranceGameAdapter);
 
 const app = express();
 
@@ -21,5 +28,5 @@ const wsServer = new GameWebSocketServer(server);
 (app as any).__wsServer = wsServer;
 
 server.listen(config.port, () => {
-  logger.info({ port: config.port }, 'Card game server started');
+  logger.info({ port: config.port }, 'Game server started');
 });

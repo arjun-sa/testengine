@@ -1,7 +1,7 @@
 import { Room } from './Room.js';
 import { generateRoomCode } from './RoomCodeGenerator.js';
 import { Connection, ConnectionManager } from '../server/ConnectionManager.js';
-import { ClientMessage, ServerMessage } from '../shared/messages.js';
+import { getGameAdapter } from '../games/registry.js';
 import { logger } from '../utils/logger.js';
 
 export class LobbyManager {
@@ -12,7 +12,7 @@ export class LobbyManager {
     private maxRooms: number = 100
   ) {}
 
-  createRoom(connection: Connection, playerName: string): void {
+  createRoom(connection: Connection, playerName: string, gameType: string = 'card-game'): void {
     if (connection.roomCode) {
       this.sendError(connection, 'INVALID_ACTION', 'Already in a room');
       return;
@@ -20,6 +20,12 @@ export class LobbyManager {
 
     if (this.rooms.size >= this.maxRooms) {
       this.sendError(connection, 'INVALID_ACTION', 'Server full, try again later');
+      return;
+    }
+
+    const adapter = getGameAdapter(gameType);
+    if (!adapter) {
+      this.sendError(connection, 'INVALID_ACTION', `Unknown game type: ${gameType}`);
       return;
     }
 
@@ -31,7 +37,7 @@ export class LobbyManager {
       // Notify remaining connected players
       this.broadcastToRoom(roomCode, { type: 'ROOM_CLOSED', reason: 'Room expired' });
       logger.info({ roomCode }, 'Room destroyed');
-    });
+    }, gameType);
 
     this.rooms.set(code, room);
 
@@ -50,9 +56,10 @@ export class LobbyManager {
       type: 'ROOM_CREATED',
       roomCode: code,
       playerId: player.id,
+      gameType,
     });
 
-    logger.info({ roomCode: code, sessionId: connection.sessionId }, 'Room created');
+    logger.info({ roomCode: code, sessionId: connection.sessionId, gameType }, 'Room created');
   }
 
   joinRoom(connection: Connection, roomCode: string, playerName: string): void {
@@ -100,6 +107,7 @@ export class LobbyManager {
       roomCode,
       playerId: player.id,
       players: room.getLobbyPlayers(),
+      gameType: room.gameType,
     });
 
     // Notify existing players
@@ -186,14 +194,20 @@ export class LobbyManager {
       return;
     }
 
-    const canStart = room.canStart();
+    const adapter = getGameAdapter(room.gameType);
+    if (!adapter) {
+      this.sendError(connection, 'INVALID_ACTION', `Unknown game type: ${room.gameType}`);
+      return;
+    }
+
+    const canStart = room.canStart(adapter.minPlayers, adapter.maxPlayers);
     if (!canStart.ok) {
-      const code = canStart.reason?.includes('2 players') ? 'NOT_ENOUGH_PLAYERS' : 'PLAYERS_NOT_READY';
+      const code = canStart.reason?.includes('at least') || canStart.reason?.includes('Too many') ? 'NOT_ENOUGH_PLAYERS' : 'PLAYERS_NOT_READY';
       this.sendError(connection, code, canStart.reason!);
       return;
     }
 
-    const gameRoom = room.startGame();
+    const gameRoom = adapter.createGameRoom(room.getPlayerInfos());
 
     // Set up game room callbacks
     gameRoom.setCallbacks({
@@ -211,31 +225,15 @@ export class LobbyManager {
       onGameOver: () => room.onGameOver(),
     });
 
+    room.startGame(gameRoom);
+
     // Send initial state to each player
     gameRoom.broadcastGameStarted();
 
-    logger.info({ roomCode: room.code, playerCount: room.playerCount }, 'Game started');
+    logger.info({ roomCode: room.code, playerCount: room.playerCount, gameType: room.gameType }, 'Game started');
   }
 
-  handleSkipTimer(connection: Connection): void {
-    const room = this.getConnectionRoom(connection);
-    if (!room) return;
-
-    if (!room.isHost(connection.sessionId)) {
-      this.sendError(connection, 'NOT_HOST', 'Only the host can skip the timer');
-      return;
-    }
-
-    const gameRoom = room.getGameRoom();
-    if (!gameRoom) {
-      this.sendError(connection, 'GAME_NOT_STARTED', 'Game has not started');
-      return;
-    }
-
-    gameRoom.skipTimer();
-  }
-
-  handleGameAction(connection: Connection, message: ClientMessage): void {
+  handleGameAction(connection: Connection, message: { type: string; [key: string]: unknown }): void {
     const room = this.getConnectionRoom(connection);
     if (!room) return;
 
@@ -250,17 +248,20 @@ export class LobbyManager {
       return;
     }
 
-    switch (message.type) {
-      case 'SELECT_PAIR':
-        gameRoom.handleSelectPair(connection.playerId, connection.sessionId, message.cards);
-        break;
-      case 'CHOOSE_CARD':
-        gameRoom.handleChooseCard(connection.playerId, connection.sessionId, message.card);
-        break;
-      case 'REQUEST_STATE':
-        gameRoom.sendStateToPlayer(connection.playerId, connection.sessionId);
-        break;
+    // Validate action via game adapter
+    const adapter = getGameAdapter(room.gameType);
+    if (!adapter) {
+      this.sendError(connection, 'INVALID_ACTION', 'Unknown game type');
+      return;
     }
+
+    const validation = adapter.validateAction(message);
+    if (!validation.ok) {
+      this.sendError(connection, 'INVALID_MESSAGE', validation.error);
+      return;
+    }
+
+    gameRoom.handleAction(connection.playerId, connection.sessionId, validation.message);
   }
 
   handleDisconnect(connection: Connection): void {
@@ -313,6 +314,7 @@ export class LobbyManager {
       roomCode: connection.roomCode,
       playerId: connection.playerId!,
       players: room.getLobbyPlayers(),
+      gameType: room.gameType,
     });
 
     // If game is in progress, send game state
@@ -370,12 +372,12 @@ export class LobbyManager {
   private sendError(connection: Connection, code: string, message: string): void {
     this.connectionManager.send(connection.sessionId, {
       type: 'ERROR',
-      code: code as any,
+      code,
       message,
     });
   }
 
-  private broadcastToRoom(roomCode: string, message: ServerMessage): void {
+  private broadcastToRoom(roomCode: string, message: object): void {
     const room = this.rooms.get(roomCode);
     if (!room) return;
     for (const sid of room.getConnectedSessionIds()) {
